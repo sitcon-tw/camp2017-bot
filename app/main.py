@@ -57,6 +57,9 @@ def consume():
     except:
         raise Error("invalid coupon id")
 
+    if coupon is None:
+        raise Error("invalid coupon id")
+
     if coupon.own_team is None:
         try:
             team = Team.objects(group_id=group_id).get()
