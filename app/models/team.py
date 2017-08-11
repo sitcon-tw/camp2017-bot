@@ -2,7 +2,7 @@ from models import db
 
 
 class Team(db.Document):
-    group_id = db.IntField()
+    group_id = db.IntField(unique=True)
     name = db.StringField()
     coin = db.IntField(default=0)
 
