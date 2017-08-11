@@ -58,8 +58,13 @@ def consume():
         raise Error("invalid coupon id")
 
     if coupon.own_team is None:
+        try:
+            team = Team.objects(group_id=group_id).get()
+        except:
+            raise Error("invalid team id")
+
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
-        coupon.own_team = Team.objects(group_id=group_id).get()
+        coupon.own_team = team
         coupon.save()
 
         return jsonify({'status': 'OK'})
