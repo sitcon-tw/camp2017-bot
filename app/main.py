@@ -2,14 +2,24 @@ import json
 
 from flask import Flask, request, jsonify
 
-from models import db, Coupon
+from models import db, Team, Coupon
 from error import Error
 
 with open('produce-permission.json', 'r') as produce_permission_json:
     produce_permission = json.load(produce_permission_json)
+
+with open('teams.json', 'r') as teams_json:
+    teams = json.load(teams_json)
+
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 db.init_app(app)
+
+for _ in teams:
+    try:
+        Team(group_id=_['groupId'], name=_['name']).save()
+    except:
+        pass
 
 
 @app.route('/generate', methods=['POST'])
