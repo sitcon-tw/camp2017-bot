@@ -52,7 +52,10 @@ def consume():
     if group_id is None or coupon_id is None:
         raise Error("group_id and coupon required")
 
-    coupon = Coupon.objects.with_id(coupon_id)
+    try:
+        coupon = Coupon.objects.with_id(coupon_id)
+    except:
+        raise Error("invalid coupon id")
 
     if coupon.own_team is None:
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
