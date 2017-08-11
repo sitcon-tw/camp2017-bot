@@ -75,8 +75,10 @@ def consume():
             raise Error("invalid team id")
 
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
+        team.reload()
         coupon.own_team = team
         coupon.save()
+        bot.sendMessage(team.group_id, "恭喜獲得 {} SITCON Coin\n{} 目前總計擁有 {} SITCON Coin".format(coupon.coin, team.name, team.coin))
 
         return jsonify({'status': 'OK'})
     else:
