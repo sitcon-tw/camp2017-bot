@@ -44,6 +44,26 @@ def generate():
     return jsonify({'status': 'OK', 'coupon': str(coupon.id)})
 
 
+@app.route('/consume', methods=['POST'])
+def consume():
+    group_id = request.form.get('group_id')
+    coupon_id = request.form.get('coupon')
+
+    if group_id is None or coupon_id is None:
+        raise Error("group_id and coupon required")
+
+    coupon = Coupon.objects.with_id(coupon_id)
+
+    if coupon.own_team is None:
+        Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
+        coupon.own_team = Team.objects(group_id=group_id).get()
+        coupon.save()
+
+        return jsonify({'status': 'OK'})
+    else:
+        raise Error("Already used", status_code=409)
+
+
 @app.errorhandler(Error)
 def handle_error(error):
     response = jsonify(error.to_dict())
