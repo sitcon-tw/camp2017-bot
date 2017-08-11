@@ -5,6 +5,14 @@ from flask import Flask, request, jsonify
 from models import db, Team, Coupon
 from error import Error
 
+import config
+
+import telepot
+import telepot.helper
+from telepot.loop import OrderedWebhook
+from telepot.delegate import (
+    per_chat_id, create_open, pave_event_space, include_callback_query_chat_id)
+
 with open('produce-permission.json', 'r') as produce_permission_json:
     produce_permission = json.load(produce_permission_json)
 
@@ -75,8 +83,35 @@ def consume():
         raise Error("Already used", status_code=409)
 
 
+@app.route('/webhook', methods=['GET', 'POST'])
+def pass_update():
+    webhook.feed(request.data)
+    return 'OK'
+
+
 @app.errorhandler(Error)
 def handle_error(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
+
+class TGHandler(telepot.helper.ChatHandler):
+    def on_callback_query(self, msg):
+        self.bot.answerCallbackQuery(msg['id'], url="https://camp.sitcon.party?id=" + str(msg['message']['chat']['id']))
+
+
+bot = telepot.DelegatorBot(config.BOT_TOKEN, [
+    include_callback_query_chat_id(
+        pave_event_space())(
+            per_chat_id(types=['private']), create_open, TGHandler, timeout=10),
+])
+
+webhook = OrderedWebhook(bot)
+
+try:
+    bot.setWebhook(config.WEBHOOK_URI)
+except telepot.exception.TooManyRequestsError:
+    pass
+
+webhook.run_as_thread()
