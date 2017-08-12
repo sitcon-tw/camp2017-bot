@@ -30,6 +30,19 @@ for _ in teams:
         pass
 
 
+def generate_coupon(coin, description, producer):
+    if coin is None or description is None:
+        raise Error("coin and description required")
+
+    coupon = Coupon(coin=coin, description=description, producer=producer)
+
+    try:
+        coupon.save()
+        return coupon
+    except:
+        raise Error("invalid value")
+
+
 @app.route('/generate', methods=['POST'])
 def generate():
     token = request.form.get('token')
@@ -39,15 +52,7 @@ def generate():
     if token not in produce_permission.keys():
         raise Error("invalid token")
 
-    if coin is None or description is None:
-        raise Error("coin and description required")
-
-    coupon = Coupon(coin=coin, description=description, producer=produce_permission[token])
-
-    try:
-        coupon.save()
-    except:
-        raise Error("invalid value")
+    coupon = generate_coupon(coin, description, produce_permission[token])
 
     return jsonify({'status': 'OK', 'coupon': str(coupon.id)})
 
