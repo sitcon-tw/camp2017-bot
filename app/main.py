@@ -56,6 +56,9 @@ def generate_coupon(coin, description, producer):
 def matched_keywrod(keyword_str, group_id):
     keyword = Keyword.objects(keyword=keyword_str).get()
 
+    if group_id in keyword.solved_team:
+        return
+
     coin = config.KEYWORD_MATCH_REWARD
 
     if len(keyword.solved_team) == 0:
