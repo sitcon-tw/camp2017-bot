@@ -53,6 +53,25 @@ def generate_coupon(coin, description, producer):
         raise Error("invalid value")
 
 
+def matched_keywrod(keyword_str, group_id):
+    keyword = Keyword.objects(keyword=keyword_str).get()
+
+    coin = config.KEYWORD_MATCH_REWARD
+
+    if len(keyword.solved_team) == 0:
+        coin *= 2
+
+    coupon = generate_coupon(coin, "解開謎題 獲得", "System")
+    team = Team.objects(group_id=group_id).get()
+
+    Keyword.objects(keyword=keyword_str).update_one(push__solved_team=group_id)
+    Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
+    team.reload()
+    coupon.own_team = team
+    coupon.save()
+    bot.sendMessage(team.group_id, "{} {} SITCON Coin\n{} 目前總計擁有 {} SITCON Coin".format(coupon.description, coupon.coin, team.name, team.coin))
+
+
 @app.route('/generate', methods=['POST'])
 def generate():
     token = request.form.get('token')
