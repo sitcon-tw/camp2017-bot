@@ -138,6 +138,12 @@ def handle_error(error):
 
 
 class TGHandler(telepot.helper.ChatHandler):
+    def on_chat_message(self, msg):
+        content_type, chat_type, chat_id = telepot.glance(msg)
+        if content_type is 'text':
+            if msg['text'] in keywords:
+                matched_keywrod(msg['text'], chat_id)
+
     def on_callback_query(self, msg):
         self.bot.answerCallbackQuery(msg['id'], url="https://camp.sitcon.party?id=" + str(msg['message']['chat']['id']))
 
