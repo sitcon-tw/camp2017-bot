@@ -93,7 +93,7 @@ def consume():
         team.reload()
         coupon.own_team = team
         coupon.save()
-        bot.sendMessage(team.group_id, "恭喜獲得 {} SITCON Coin\n{} 目前總計擁有 {} SITCON Coin".format(coupon.coin, team.name, team.coin))
+        bot.sendMessage(team.group_id, "{} {} SITCON Coin\n{} 目前總計擁有 {} SITCON Coin".format(coupon.description, coupon.coin, team.name, team.coin))
 
         return jsonify({'status': 'OK'})
     else:
