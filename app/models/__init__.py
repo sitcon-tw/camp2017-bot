@@ -4,3 +4,4 @@ db = MongoEngine()
 
 from models.team import *
 from models.coupon import *
+from models.keyword import *
