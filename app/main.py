@@ -2,7 +2,7 @@ import json
 
 from flask import Flask, request, jsonify
 
-from models import db, Team, Coupon
+from models import db, Team, Coupon, Keyword
 from error import Error
 
 import config
@@ -19,6 +19,12 @@ with open('produce-permission.json', 'r') as produce_permission_json:
 with open('teams.json', 'r') as teams_json:
     teams = json.load(teams_json)
 
+try:
+    with open('keyword.json', 'r') as keyword_json:
+        keywords = json.load(keyword_json)
+except:
+    keywords = []
+
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 db.init_app(app)
@@ -28,6 +34,10 @@ for _ in teams:
         Team(group_id=_['groupId'], name=_['name']).save()
     except:
         pass
+
+if len(keywords) != Keyword.objects.count():
+    for _ in keywords:
+        Keyword(keyword=_).save()
 
 
 def generate_coupon(coin, description, producer):
