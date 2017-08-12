@@ -102,3 +102,4 @@ ENV/
 config.py
 teams.json
 produce-permission.json
+keyword.json
