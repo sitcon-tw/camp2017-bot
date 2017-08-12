@@ -85,6 +85,11 @@ def consume():
         raise Error("Already used", status_code=409)
 
 
+@app.route('/status')
+def status():
+    return Team.objects().to_json()
+
+
 @app.route('/webhook', methods=['GET', 'POST'])
 def pass_update():
     webhook.feed(request.data)
