@@ -111,7 +111,7 @@ class TGHandler(telepot.helper.ChatHandler):
 bot = telepot.DelegatorBot(config.BOT_TOKEN, [
     include_callback_query_chat_id(
         pave_event_space())(
-            per_chat_id(types=['private']), create_open, TGHandler, timeout=10),
+            per_chat_id(), create_open, TGHandler, timeout=10),
 ])
 
 webhook = OrderedWebhook(bot)
