@@ -23,7 +23,7 @@ try:
     with open('keyword.json', 'r') as keyword_json:
         keywords = json.load(keyword_json)
 except:
-    keywords = []
+    keywords = {}
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -35,8 +35,8 @@ for _ in teams:
     except:
         pass
 
-if len(keywords) != Keyword.objects.count():
-    for _ in keywords:
+if len(keywords.keys()) != Keyword.objects.count():
+    for _ in keywords.keys():
         Keyword(keyword=_).save()
 
 
@@ -144,7 +144,7 @@ class TGHandler(telepot.helper.ChatHandler):
     def on_chat_message(self, msg):
         content_type, chat_type, chat_id = telepot.glance(msg)
         if content_type is 'text':
-            if msg['text'] in keywords:
+            if msg['text'] in keywords.keys():
                 matched_keywrod(msg['text'], chat_id)
 
     def on_callback_query(self, msg):
