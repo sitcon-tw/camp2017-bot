@@ -59,7 +59,7 @@ def matched_keywrod(keyword_str, group_id):
     if group_id in keyword.solved_team:
         return
 
-    coin = config.KEYWORD_MATCH_REWARD
+    coin = config.KEYWORD_MATCH_REWARD * keywords[keyword_str]
 
     if len(keyword.solved_team) == 0:
         coin *= 2
