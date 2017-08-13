@@ -72,7 +72,7 @@ def matched_keywrod(keyword_str, group_id):
     team.reload()
     coupon.own_team = team
     coupon.save()
-    bot.sendMessage(team.group_id, "{} {} SITCON Coin\n{} 目前總計擁有 {} SITCON Coin".format(coupon.description, coupon.coin, team.name, team.coin))
+    bot.sendMessage(team.group_id, "{} {} 小石幣\n{} 目前總計擁有 {} 小石幣".format(coupon.description, coupon.coin, team.name, team.coin))
 
 
 @app.route('/generate', methods=['POST'])
@@ -115,7 +115,7 @@ def consume():
         team.reload()
         coupon.own_team = team
         coupon.save()
-        bot.sendMessage(team.group_id, "{} {} SITCON Coin\n{} 目前總計擁有 {} SITCON Coin".format(coupon.description, coupon.coin, team.name, team.coin))
+        bot.sendMessage(team.group_id, "{} {} 小石幣\n{} 目前總計擁有 {} 小石幣".format(coupon.description, coupon.coin, team.name, team.coin))
 
         return jsonify({'status': 'OK'})
     else:
