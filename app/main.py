@@ -40,8 +40,11 @@ for _ in teams:
         pass
 
 if len(keywords.keys()) != Keyword.objects.count():
-    for _ in keywords.keys():
-        Keyword(keyword=_).save()
+    try:
+        for _ in keywords.keys():
+            Keyword(keyword=_).save()
+    except:
+        pass
 
 
 def generate_coupon(coin, description, producer):
