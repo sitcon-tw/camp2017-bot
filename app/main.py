@@ -77,6 +77,7 @@ def matched_keywrod(keyword_str, group_id):
     coupon.own_team = team
     coupon.save()
     bot.sendMessage(team.group_id, "{} {} 小石幣\n{} 目前總計擁有 {} 小石幣".format(coupon.description, coupon.coin, team.name, team.coin))
+    app.logger.info("{}, {} solved keyword {} gain {} coin".format(str(datetime.now()), team.name, keyword_str, coupon.coin))
 
 
 @app.route('/generate', methods=['POST'])
