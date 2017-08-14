@@ -1,3 +1,5 @@
+from datetime import datetime
+import logging
 import json
 
 from flask import Flask, request, jsonify
@@ -28,6 +30,8 @@ except:
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 db.init_app(app)
+app.logger.addHandler(logging.StreamHandler())
+app.logger.setLevel(logging.INFO)
 
 for _ in teams:
     try:
