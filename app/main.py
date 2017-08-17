@@ -66,13 +66,19 @@ def matched_keywrod(keyword_str, group_id):
     if group_id in keyword.solved_team:
         return
 
+    team = Team.objects(group_id=group_id).get()
+
+#     if keyword_str == "238504":
+#         bot.sendMessage(team.group_id, "「副市長是受小石信任之人，是心靈純潔之人」")
+#     elif keyword_str == "15769":
+#         bot.sendMessage(team.group_id, "「市長是小石害怕之人，是已經受到心靈扭曲影響之人」")
+
     coin = config.KEYWORD_MATCH_REWARD * keywords[keyword_str]
 
     if len(keyword.solved_team) == 0:
         coin *= 2
 
     coupon = generate_coupon(coin, "解開謎題 獲得", "System")
-    team = Team.objects(group_id=group_id).get()
 
     Keyword.objects(keyword=keyword_str).update_one(push__solved_team=group_id)
     Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
@@ -124,6 +130,9 @@ def consume():
         coupon.own_team = team
         coupon.save()
         bot.sendMessage(team.group_id, "{} {} 小石幣\n{} 目前總計擁有 {} 小石幣".format(coupon.description, coupon.coin, team.name, team.coin))
+
+#         if len(set(map(lambda _: _.producer, Coupon.objects(own_team=team)))) == len(produce_permission.keys()):
+#             bot.sendMessage(team.group_id, "「書靈 Lamp 想要幫助學徒尋找真相，因此靠著自己淵博的知識，發動了一個『真實之陣』\n真實之陣，信任正確之人，訴說你的信號，將會返回試金之結論」")
 
         return jsonify({'status': 'OK'})
     else:
