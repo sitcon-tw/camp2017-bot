@@ -3,6 +3,8 @@ import logging
 import json
 
 from flask import Flask, request, jsonify
+from mongoengine import NotUniqueError, ValidationError
+from flask_mongoengine import DoesNotExist
 
 from models import db, Team, Coupon, Keyword
 from error import Error
@@ -24,7 +26,7 @@ with open('teams.json', 'r') as teams_json:
 try:
     with open('keyword.json', 'r') as keyword_json:
         keywords = json.load(keyword_json)
-except:
+except IOError:
     keywords = {}
 
 app = Flask(__name__)
@@ -36,15 +38,12 @@ app.logger.setLevel(logging.INFO)
 for _ in teams:
     try:
         Team(group_id=_['groupId'], name=_['name']).save()
-    except:
+    except NotUniqueError:
         pass
 
 if len(keywords.keys()) != Keyword.objects.count():
-    try:
-        for _ in keywords.keys():
-            Keyword(keyword=_).save()
-    except:
-        pass
+    for _ in keywords.keys():
+        Keyword(keyword=_).save()
 
 
 def generate_coupon(coin, description, producer):
@@ -56,7 +55,7 @@ def generate_coupon(coin, description, producer):
     try:
         coupon.save()
         return coupon
-    except:
+    except ValidationError:
         raise Error("invalid value")
 
 
@@ -113,7 +112,7 @@ def consume():
 
     try:
         coupon = Coupon.objects.with_id(coupon_id)
-    except:
+    except ValidationError:
         raise Error("invalid coupon id")
 
     if coupon is None:
@@ -122,7 +121,7 @@ def consume():
     if coupon.own_team is None:
         try:
             team = Team.objects(group_id=group_id).get()
-        except:
+        except DoesNotExist:
             raise Error("invalid team id")
 
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
