@@ -68,10 +68,10 @@ def scanner_callback(bot, update):
 
 def match_keyword_callback(bot, update):
     if update.message.text in keywords.keys():
-        matched_keywrod(update.message.text, update.message.chat.id)
+        matched_keyword(update.message.text, update.message.chat.id)
 
 
-def matched_keywrod(keyword_str, group_id):
+def matched_keyword(keyword_str, group_id):
     keyword = Keyword.objects(keyword=keyword_str).get()
 
     if group_id in keyword.solved_team:
