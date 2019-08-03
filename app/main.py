@@ -1,19 +1,21 @@
 from datetime import datetime
 import logging
 import json
+from queue import Queue
+from threading import Thread
 
 from flask import Flask, request, jsonify
+from mongoengine import NotUniqueError, ValidationError
+from flask_mongoengine import DoesNotExist
+
+from telegram import Bot, Update
+from telegram.ext import CallbackQueryHandler, Dispatcher, MessageHandler
+from telegram.ext.filters import Filters
 
 from models import db, Team, Coupon, Keyword
 from error import Error
 
 import config
-
-import telepot
-import telepot.helper
-from telepot.loop import OrderedWebhook
-from telepot.delegate import (
-    per_chat_id, create_open, pave_event_space, include_callback_query_chat_id)
 
 with open('produce-permission.json', 'r') as produce_permission_json:
     produce_permission = json.load(produce_permission_json)
@@ -24,27 +26,27 @@ with open('teams.json', 'r') as teams_json:
 try:
     with open('keyword.json', 'r') as keyword_json:
         keywords = json.load(keyword_json)
-except:
+except IOError:
     keywords = {}
+
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 db.init_app(app)
 app.logger.addHandler(logging.StreamHandler())
 app.logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 for _ in teams:
     try:
         Team(group_id=_['groupId'], name=_['name']).save()
-    except:
+    except NotUniqueError:
         pass
 
 if len(keywords.keys()) != Keyword.objects.count():
-    try:
-        for _ in keywords.keys():
-            Keyword(keyword=_).save()
-    except:
-        pass
+    for _ in keywords.keys():
+        Keyword(keyword=_).save()
 
 
 def generate_coupon(coin, description, producer):
@@ -56,11 +58,20 @@ def generate_coupon(coin, description, producer):
     try:
         coupon.save()
         return coupon
-    except:
+    except ValidationError:
         raise Error("invalid value")
 
 
-def matched_keywrod(keyword_str, group_id):
+def scanner_callback(bot, update):
+    bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
+
+
+def match_keyword_callback(bot, update):
+    if update.message.text in keywords.keys():
+        matched_keyword(update.message.text, update.message.chat.id)
+
+
+def matched_keyword(keyword_str, group_id):
     keyword = Keyword.objects(keyword=keyword_str).get()
 
     if group_id in keyword.solved_team:
@@ -113,7 +124,7 @@ def consume():
 
     try:
         coupon = Coupon.objects.with_id(coupon_id)
-    except:
+    except ValidationError:
         raise Error("invalid coupon id")
 
     if coupon is None:
@@ -122,7 +133,7 @@ def consume():
     if coupon.own_team is None:
         try:
             team = Team.objects(group_id=group_id).get()
-        except:
+        except DoesNotExist:
             raise Error("invalid team id")
 
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
@@ -151,7 +162,7 @@ def keyword_status():
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def pass_update():
-    webhook.feed(request.data)
+    update_queue.put(Update.de_json(request.get_json(force=True), bot))
     return 'OK'
 
 
@@ -162,28 +173,19 @@ def handle_error(error):
     return response
 
 
-class TGHandler(telepot.helper.ChatHandler):
-    def on_chat_message(self, msg):
-        content_type, chat_type, chat_id = telepot.glance(msg)
-        if content_type is 'text':
-            if msg['text'] in keywords.keys():
-                matched_keywrod(msg['text'], chat_id)
+def tg_bot_init(config):
+    bot = Bot(config.BOT_TOKEN)
+    bot.set_webhook(webhook_url=config.WEBHOOK_URI)
+    update_queue = Queue()
 
-    def on_callback_query(self, msg):
-        self.bot.answerCallbackQuery(msg['id'], url="https://camp.sitcon.party?id=" + str(msg['message']['chat']['id']))
+    dispatcher = Dispatcher(bot, update_queue)
+    dispatcher.add_handler(MessageHandler(Filters.text, match_keyword_callback))
+    dispatcher.add_handler(CallbackQueryHandler(scanner_callback))
+
+    thread = Thread(target=dispatcher.start, name='dispatcher')
+    thread.start()
+
+    return (bot, update_queue)
 
 
-bot = telepot.DelegatorBot(config.BOT_TOKEN, [
-    include_callback_query_chat_id(
-        pave_event_space())(
-            per_chat_id(), create_open, TGHandler, timeout=10),
-])
-
-webhook = OrderedWebhook(bot)
-
-try:
-    bot.setWebhook(config.WEBHOOK_URI)
-except telepot.exception.TooManyRequestsError:
-    pass
-
-webhook.run_as_thread()
+bot, update_queue = tg_bot_init(config)
