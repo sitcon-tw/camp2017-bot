@@ -177,7 +177,7 @@ def handle_error(error):
 
 def tg_bot_init(config):
     bot = Bot(config.BOT_TOKEN)
-    bot.set_webhook(webhook_url=config.WEBHOOK_URI)
+    bot.set_webhook(url=config.WEBHOOK_URI)
     update_queue = Queue()
 
     dispatcher = Dispatcher(bot, update_queue)
