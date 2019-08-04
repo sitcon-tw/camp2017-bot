@@ -63,7 +63,11 @@ def generate_coupon(coin, description, producer):
 
 
 def scanner_callback(bot, update):
-    bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
+    try:
+        bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
+    except AttributeError:
+        # not click from group, chat id not found
+        pass
 
 
 def match_keyword_callback(bot, update):
