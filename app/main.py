@@ -74,6 +74,12 @@ def match_keyword_callback(bot, update):
     if update.message.text in keywords.keys():
         matched_keyword(update.message.text, update.message.chat.id)
 
+    if update.message.text == "掃描點數":
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text=config.SCANNER_BUTTON_TEXT, callback_game=True)
+        ]])
+        bot.sendGame(update.message.chat.id, "scanner", reply_markup=keyboard)
+
 
 def matched_keyword(keyword_str, group_id):
     keyword = Keyword.objects(keyword=keyword_str).get()

@@ -5,7 +5,7 @@ import config
 from telegram import Bot, InlineKeyboardMarkup, InlineKeyboardButton
 
 keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-    InlineKeyboardButton(text='掃下去', callback_game=True)
+    InlineKeyboardButton(text=config.SCANNER_BUTTON_TEXT, callback_game=True)
 ]])
 
 bot = Bot(config.BOT_TOKEN)
