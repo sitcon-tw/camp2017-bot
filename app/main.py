@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 from mongoengine import NotUniqueError, ValidationError
 from flask_mongoengine import DoesNotExist
 
-from telegram import Bot, Update
+from telegram import Bot, InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import CallbackQueryHandler, Dispatcher, MessageHandler
 from telegram.ext.filters import Filters
 
