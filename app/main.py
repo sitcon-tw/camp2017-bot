@@ -1,16 +1,13 @@
 from datetime import datetime
 import logging
 import json
-from queue import Queue
-from threading import Thread
 
 from flask import Flask, request, jsonify
 from mongoengine import NotUniqueError, ValidationError
 from flask_mongoengine import DoesNotExist
 
-from telegram import Bot, InlineKeyboardMarkup, InlineKeyboardButton, Update
-from telegram.ext import CallbackQueryHandler, Dispatcher, MessageHandler
-from telegram.ext.filters import Filters
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telegram.ext import filters, ApplicationBuilder, CallbackQueryHandler, MessageHandler
 
 from models import db, Team, Coupon, Keyword
 from error import Error
@@ -62,15 +59,15 @@ def generate_coupon(coin, description, producer):
         raise Error("invalid value")
 
 
-def scanner_callback(bot, update):
+async def scanner_callback(update, context):
     try:
-        bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
+        await context.bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
     except AttributeError:
         # not click from group, chat id not found
         pass
 
 
-def match_keyword_callback(bot, update):
+async def match_keyword_callback(update, context):
     if update.message.text in keywords.keys():
         matched_keyword(update.message.text, update.message.chat.id)
 
@@ -78,7 +75,7 @@ def match_keyword_callback(bot, update):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text=config.SCANNER_BUTTON_TEXT, callback_game=True)
         ]])
-        bot.sendGame(update.message.chat.id, "scanner", reply_markup=keyboard)
+        await context.bot.sendGame(update.message.chat.id, "scanner", reply_markup=keyboard)
 
 
 def matched_keyword(keyword_str, group_id):
@@ -186,16 +183,14 @@ def handle_error(error):
 
 
 def tg_bot_init(config):
-    bot = Bot(config.BOT_TOKEN)
-    bot.set_webhook(url=config.WEBHOOK_URI)
-    update_queue = Queue()
+    application = ApplicationBuilder().token(config.BOT_TOKEN).build()
+    bot = application.bot
+    update_queue = application.update_queue
 
-    dispatcher = Dispatcher(bot, update_queue)
-    dispatcher.add_handler(MessageHandler(Filters.text, match_keyword_callback))
-    dispatcher.add_handler(CallbackQueryHandler(scanner_callback))
+    application.add_handler(MessageHandler(filters.TEXT, match_keyword_callback))
+    application.add_handler(CallbackQueryHandler(scanner_callback))
 
-    thread = Thread(target=dispatcher.start, name='dispatcher')
-    thread.start()
+    application.run_polling()
 
     return (bot, update_queue)
 

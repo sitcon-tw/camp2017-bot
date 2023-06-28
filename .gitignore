@@ -103,3 +103,6 @@ config.py
 teams.json
 produce-permission.json
 keyword.json
+
+# Databse
+/db/

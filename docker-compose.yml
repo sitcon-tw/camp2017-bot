@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./db:/data/db
+    networks:
+      - camp2017-network
+    hostname: db
+
+  bot:
+    image: camp2017
+      #    restart: always
+    build: .
+    networks:
+      - camp2017-network
+    depends_on:
+      - mongo
+networks:
+  camp2017-network:
