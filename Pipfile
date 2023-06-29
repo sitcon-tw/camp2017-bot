@@ -9,7 +9,7 @@ flake8 = "*"
 [packages]
 mongoengine = "*"
 Flask = "*"
-python-telegram-bot = "*"
+pyTelegramBotAPI = "*"
 waitress = "*"
 
 [requires]

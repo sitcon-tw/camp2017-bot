@@ -5,8 +5,8 @@ import json
 from flask import Flask, request, jsonify
 from mongoengine import NotUniqueError, ValidationError
 
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
-from telegram.ext import filters, ApplicationBuilder, CallbackQueryHandler, MessageHandler
+from telebot import TeleBot
+from telebot.util import quick_markup
 
 from models import Team, Coupon, Keyword
 from error import Error
@@ -26,6 +26,7 @@ except IOError:
     keywords = {}
 
 
+bot = TeleBot(config.BOT_TOKEN)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 app.logger.addHandler(logging.StreamHandler())
@@ -57,26 +58,28 @@ def generate_coupon(coin, description, producer):
         raise Error("invalid value")
 
 
-async def scanner_callback(update, context):
+@bot.callback_query_handler(func=lambda x: True)
+def send_scanner(callback_query):
     try:
-        await context.bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
+        bot.answer_callback_query(callback_query.id, url="https://camp.sitcon.party?id=" + str(callback_query.message.chat.id))
     except AttributeError:
         # not click from group, chat id not found
         pass
 
 
-async def match_keyword_callback(update, context):
-    if update.message.text in keywords.keys():
-        await matched_keyword(update.message.text, update.message.chat.id, context.bot)
+@bot.message_handler(content_types=['text'], chat_types=['group', 'supergroup'])
+def message_receive(message):
+    if message.text in keywords.keys():
+        matched_keyword(message.text, message.chat.id)
 
-    if update.message.text == "掃描點數":
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text=config.SCANNER_BUTTON_TEXT, callback_game=True)
-        ]])
-        await context.bot.sendGame(update.message.chat.id, "scanner", reply_markup=keyboard)
+    if message.text == "掃描點數":
+        keyboard = quick_markup({
+            config.SCANNER_BUTTON_TEXT: {'callback_game': True}
+        })
+        bot.send_game(message.chat.id, "scanner", reply_markup=keyboard)
 
 
-async def matched_keyword(keyword_str, group_id, bot):
+def matched_keyword(keyword_str, group_id):
     keyword = Keyword.objects(keyword=keyword_str).get()
 
     if group_id in keyword.solved_team:
@@ -102,7 +105,7 @@ async def matched_keyword(keyword_str, group_id, bot):
     coupon.own_team = team
     coupon.save()
 
-    await bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+    bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
                     .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
     app.logger.info("{}, {} solved keyword {} gain {} coin".format(str(datetime.now()), team.name, keyword_str, coupon.coin))
 
@@ -147,7 +150,7 @@ async def consume():
         team.reload()
         coupon.own_team = team
         coupon.save()
-        await bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+        bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
                         .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
 
 #         if len(set(map(lambda _: _.producer, Coupon.objects(own_team=team)))) == len(produce_permission.keys()):
@@ -168,10 +171,12 @@ def keyword_status():
     return Keyword.objects().only('solved_team').to_json()
 
 
+'''
 @app.route('/webhook', methods=['GET', 'POST'])
 def pass_update():
     update_queue.put(Update.de_json(request.get_json(force=True), bot))
     return 'OK'
+'''
 
 
 @app.errorhandler(Error)
@@ -181,17 +186,5 @@ def handle_error(error):
     return response
 
 
-def tg_bot_init(config):
-    application = ApplicationBuilder().token(config.BOT_TOKEN).build()
-    bot = application.bot
-    update_queue = application.update_queue
-
-    application.add_handler(MessageHandler(filters.TEXT, match_keyword_callback))
-    application.add_handler(CallbackQueryHandler(scanner_callback))
-
-    application.run_polling()
-
-    return (bot, update_queue)
-
-
-bot, update_queue = tg_bot_init(config)
+# Change to webhook for production
+bot.infinity_polling()
