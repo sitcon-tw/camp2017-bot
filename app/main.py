@@ -4,12 +4,11 @@ import json
 
 from flask import Flask, request, jsonify
 from mongoengine import NotUniqueError, ValidationError
-from flask_mongoengine import DoesNotExist
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import filters, ApplicationBuilder, CallbackQueryHandler, MessageHandler
 
-from models import db, Team, Coupon, Keyword
+from models import Team, Coupon, Keyword
 from error import Error
 
 import config
@@ -29,7 +28,6 @@ except IOError:
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
-db.init_app(app)
 app.logger.addHandler(logging.StreamHandler())
 app.logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO,
@@ -142,7 +140,7 @@ async def consume():
     if coupon.own_team is None:
         try:
             team = Team.objects(group_id=group_id).get()
-        except DoesNotExist:
+        except Team.DoesNotExist:
             raise Error("invalid team id")
 
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)

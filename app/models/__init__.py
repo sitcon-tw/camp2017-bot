@@ -1,6 +1,8 @@
-from flask_mongoengine import MongoEngine
+from mongoengine import connect
 
-db = MongoEngine()
+import config
+
+connect(**config.MONGODB_SETTINGS)
 
 from models.team import *
 from models.coupon import *

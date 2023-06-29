@@ -1,4 +1,4 @@
-BOT_TOKEN = 'your_bot_token'
+BOT_TOKEN = 'YOUR_BOT_TOKEN'
 # WEBHOOK_URI = 'https://your.webhook.uri/webhook'
 
 MONGODB_SETTINGS = {

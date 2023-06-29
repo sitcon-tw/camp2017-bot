@@ -7,10 +7,10 @@ verify_ssl = true
 flake8 = "*"
 
 [packages]
-flask-mongoengine = "*"
+mongoengine = "*"
 Flask = "*"
 python-telegram-bot = "*"
 waitress = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.11"
