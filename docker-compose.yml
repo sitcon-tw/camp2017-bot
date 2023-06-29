@@ -3,18 +3,19 @@ services:
   mongo:
     image: mongo
     restart: always
-    ports:
-      - "27017:27017"
     volumes:
       - ./db:/data/db
+    ports:
+      - "27017:27017"
     networks:
       - camp2017-network
     hostname: db
-
   bot:
     image: camp2017
       #    restart: always
     build: .
+    ports:
+      - "5000:5000"
     networks:
       - camp2017-network
     depends_on:

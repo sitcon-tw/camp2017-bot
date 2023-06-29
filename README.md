@@ -11,19 +11,21 @@ Run:
 $ docker compose start
 ```
 
-Stop:
-```bash
-$ docker compose stop
-```
-
 Build and Run:
 ```bash
 $ docker compose up
+```
+Or in detach mode:
+```bash
+$ docker compose up -d
+```
+
+Remove image `camp2017`, networks and containers:
+```bash
+$ docker compose down --rmi local -v
 ```
 
 Remove all iamges, networks and containers:
 ```bash
 $ docker compose down --rmi all -v
 ```
-
-

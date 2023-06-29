@@ -69,7 +69,7 @@ async def scanner_callback(update, context):
 
 async def match_keyword_callback(update, context):
     if update.message.text in keywords.keys():
-        matched_keyword(update.message.text, update.message.chat.id)
+        await matched_keyword(update.message.text, update.message.chat.id, context.bot)
 
     if update.message.text == "掃描點數":
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[
@@ -78,7 +78,7 @@ async def match_keyword_callback(update, context):
         await context.bot.sendGame(update.message.chat.id, "scanner", reply_markup=keyboard)
 
 
-def matched_keyword(keyword_str, group_id):
+async def matched_keyword(keyword_str, group_id, bot):
     keyword = Keyword.objects(keyword=keyword_str).get()
 
     if group_id in keyword.solved_team:
@@ -103,7 +103,8 @@ def matched_keyword(keyword_str, group_id):
     team.reload()
     coupon.own_team = team
     coupon.save()
-    bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+
+    await bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
                     .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
     app.logger.info("{}, {} solved keyword {} gain {} coin".format(str(datetime.now()), team.name, keyword_str, coupon.coin))
 
@@ -123,7 +124,7 @@ def generate():
 
 
 @app.route('/consume', methods=['POST'])
-def consume():
+async def consume():
     group_id = request.form.get('group_id')
     coupon_id = request.form.get('coupon')
 
@@ -148,7 +149,7 @@ def consume():
         team.reload()
         coupon.own_team = team
         coupon.save()
-        bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+        await bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
                         .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
 
 #         if len(set(map(lambda _: _.producer, Coupon.objects(own_team=team)))) == len(produce_permission.keys()):
