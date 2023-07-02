@@ -1,12 +1,14 @@
 from datetime import datetime
 import logging
 import json
+import time
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from mongoengine import NotUniqueError, ValidationError
 
 from telebot import TeleBot
 from telebot.util import quick_markup
+from telebot.types import Update
 
 from models import Team, Coupon, Keyword
 from error import Error
@@ -171,12 +173,16 @@ def keyword_status():
     return Keyword.objects().only('solved_team').to_json()
 
 
-'''
-@app.route('/webhook', methods=['GET', 'POST'])
-def pass_update():
-    update_queue.put(Update.de_json(request.get_json(force=True), bot))
-    return 'OK'
-'''
+# Process webhook calls
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return ''
+    else:
+        abort(403)
 
 
 @app.errorhandler(Error)
@@ -186,5 +192,9 @@ def handle_error(error):
     return response
 
 
-# Change to webhook for production
-bot.infinity_polling()
+# polling is for develop
+# bot.infinity_polling()
+
+bot.remove_webhook()
+time.sleep(0.1)
+bot.set_webhook(url=config.WEBHOOK_URI)

@@ -5,14 +5,14 @@ services:
     restart: always
     volumes:
       - ./db:/data/db
-    ports:
-      - "27017:27017"
+    # ports:
+    #   - "27017:27017"
     networks:
       - camp2017-network
     hostname: db
   bot:
     image: camp2017
-      #    restart: always
+    restart: always
     build: .
     ports:
       - "5000:5000"

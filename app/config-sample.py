@@ -1,5 +1,5 @@
 BOT_TOKEN = 'YOUR_BOT_TOKEN'
-# WEBHOOK_URI = 'https://your.webhook.uri/webhook'
+WEBHOOK_URI = 'https://your.webhook.uri/webhook'
 
 MONGODB_SETTINGS = {
     'db': 'camp2017',
