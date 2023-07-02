@@ -2,13 +2,14 @@ import json
 
 import config
 
-from telegram import Bot, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot import TeleBot
+from telebot.util import quick_markup
 
-keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-    InlineKeyboardButton(text=config.SCANNER_BUTTON_TEXT, callback_game=True)
-]])
+keyboard = quick_markup({
+    config.SCANNER_BUTTON_TEXT: {'callback_game': True}
+})
 
-bot = Bot(config.BOT_TOKEN)
+bot = TeleBot(config.BOT_TOKEN)
 
 teams = []
 with open('teams.json', 'r') as teams_json:

@@ -1,18 +1,16 @@
 from datetime import datetime
 import logging
 import json
-from queue import Queue
-from threading import Thread
+import time
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from mongoengine import NotUniqueError, ValidationError
-from flask_mongoengine import DoesNotExist
 
-from telegram import Bot, InlineKeyboardMarkup, InlineKeyboardButton, Update
-from telegram.ext import CallbackQueryHandler, Dispatcher, MessageHandler
-from telegram.ext.filters import Filters
+from telebot import TeleBot
+from telebot.util import quick_markup
+from telebot.types import Update
 
-from models import db, Team, Coupon, Keyword
+from models import Team, Coupon, Keyword
 from error import Error
 
 import config
@@ -30,9 +28,9 @@ except IOError:
     keywords = {}
 
 
+bot = TeleBot(config.BOT_TOKEN)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
-db.init_app(app)
 app.logger.addHandler(logging.StreamHandler())
 app.logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO,
@@ -62,23 +60,25 @@ def generate_coupon(coin, description, producer):
         raise Error("invalid value")
 
 
-def scanner_callback(bot, update):
+@bot.callback_query_handler(func=lambda x: True)
+def send_scanner(callback_query):
     try:
-        bot.answerCallbackQuery(update.callback_query.id, url="https://camp.sitcon.party?id=" + str(update.callback_query.message.chat.id))
+        bot.answer_callback_query(callback_query.id, url="https://camp.sitcon.party?id=" + str(callback_query.message.chat.id))
     except AttributeError:
         # not click from group, chat id not found
         pass
 
 
-def match_keyword_callback(bot, update):
-    if update.message.text in keywords.keys():
-        matched_keyword(update.message.text, update.message.chat.id)
+@bot.message_handler(content_types=['text'], chat_types=['group', 'supergroup'])
+def message_receive(message):
+    if message.text in keywords.keys():
+        matched_keyword(message.text, message.chat.id)
 
-    if update.message.text == "掃描點數":
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text=config.SCANNER_BUTTON_TEXT, callback_game=True)
-        ]])
-        bot.sendGame(update.message.chat.id, "scanner", reply_markup=keyboard)
+    if message.text == "掃描點數":
+        keyboard = quick_markup({
+            config.SCANNER_BUTTON_TEXT: {'callback_game': True}
+        })
+        bot.send_game(message.chat.id, "scanner", reply_markup=keyboard)
 
 
 def matched_keyword(keyword_str, group_id):
@@ -106,7 +106,8 @@ def matched_keyword(keyword_str, group_id):
     team.reload()
     coupon.own_team = team
     coupon.save()
-    bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+
+    bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
                     .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
     app.logger.info("{}, {} solved keyword {} gain {} coin".format(str(datetime.now()), team.name, keyword_str, coupon.coin))
 
@@ -126,7 +127,7 @@ def generate():
 
 
 @app.route('/consume', methods=['POST'])
-def consume():
+async def consume():
     group_id = request.form.get('group_id')
     coupon_id = request.form.get('coupon')
 
@@ -144,14 +145,14 @@ def consume():
     if coupon.own_team is None:
         try:
             team = Team.objects(group_id=group_id).get()
-        except DoesNotExist:
+        except Team.DoesNotExist:
             raise Error("invalid team id")
 
         Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
         team.reload()
         coupon.own_team = team
         coupon.save()
-        bot.sendMessage(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+        bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
                         .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
 
 #         if len(set(map(lambda _: _.producer, Coupon.objects(own_team=team)))) == len(produce_permission.keys()):
@@ -172,10 +173,16 @@ def keyword_status():
     return Keyword.objects().only('solved_team').to_json()
 
 
-@app.route('/webhook', methods=['GET', 'POST'])
-def pass_update():
-    update_queue.put(Update.de_json(request.get_json(force=True), bot))
-    return 'OK'
+# Process webhook calls
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return ''
+    else:
+        abort(403)
 
 
 @app.errorhandler(Error)
@@ -185,19 +192,9 @@ def handle_error(error):
     return response
 
 
-def tg_bot_init(config):
-    bot = Bot(config.BOT_TOKEN)
-    bot.set_webhook(url=config.WEBHOOK_URI)
-    update_queue = Queue()
+# polling is for develop
+# bot.infinity_polling()
 
-    dispatcher = Dispatcher(bot, update_queue)
-    dispatcher.add_handler(MessageHandler(Filters.text, match_keyword_callback))
-    dispatcher.add_handler(CallbackQueryHandler(scanner_callback))
-
-    thread = Thread(target=dispatcher.start, name='dispatcher')
-    thread.start()
-
-    return (bot, update_queue)
-
-
-bot, update_queue = tg_bot_init(config)
+bot.remove_webhook()
+time.sleep(0.1)
+bot.set_webhook(url=config.WEBHOOK_URI)

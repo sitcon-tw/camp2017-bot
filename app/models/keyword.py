@@ -1,4 +1,4 @@
-from models import db
+import mongoengine as db
 
 
 class Keyword(db.Document):

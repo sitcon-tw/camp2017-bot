@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.11
 
 COPY ./Pipfile* /
 
@@ -8,4 +8,4 @@ COPY ./app /app
 
 EXPOSE 5000
 WORKDIR /app
-ENTRYPOINT ["pipenv","run","waitress-serve", "--port=5000", "main:app"]
+ENTRYPOINT ["pipenv","run","waitress-serve", "--host=0.0.0.0", "--port=5000", "main:app"]
