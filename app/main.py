@@ -127,7 +127,7 @@ def generate():
 
 
 @app.route('/consume', methods=['POST'])
-async def consume():
+def consume():
     group_id = request.form.get('group_id')
     coupon_id = request.form.get('coupon')
 
