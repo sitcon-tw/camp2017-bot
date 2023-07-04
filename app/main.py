@@ -185,6 +185,11 @@ def webhook():
         abort(403)
 
 
+@app.route('/teams')
+def get_teams():
+    return jsonify(teams)
+
+
 @app.errorhandler(Error)
 def handle_error(error):
     response = jsonify(error.to_dict())
