@@ -74,7 +74,7 @@ def message_receive(message):
     if message.text in keywords.keys():
         matched_keyword(message.text, message.chat.id)
 
-    if message.text == "掃描點數":
+    if message.text == config.SCANNER_KEYWORD:
         keyboard = quick_markup({
             config.SCANNER_BUTTON_TEXT: {'callback_game': True}
         })
