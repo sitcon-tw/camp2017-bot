@@ -24,6 +24,9 @@ with open('teams.json', 'r') as teams_json:
 try:
     with open('keyword.json', 'r') as keyword_json:
         keywords = json.load(keyword_json)
+        for key in keywords.keys():
+            if "description" not in keywords[key]:
+                keywords[key]["description"] = config.DEFAULT_KEYWORD_DESCRIPTION
 except IOError:
     keywords = {}
 
@@ -43,8 +46,8 @@ for _ in teams:
         pass
 
 if len(keywords.keys()) != Keyword.objects.count():
-    for _ in keywords.keys():
-        Keyword(keyword=_).save()
+    for k, v in keywords.items():
+        Keyword(keyword=k, **dict(filter(lambda pair: pair[0] != "value", v.items()))).save()
 
 
 def generate_coupon(coin, description, producer):
@@ -58,6 +61,21 @@ def generate_coupon(coin, description, producer):
         return coupon
     except ValidationError:
         raise Error("invalid value")
+
+
+def consume_coupon(coupon: Coupon, team: Team, log_message: str):
+    if coupon.own_team is not None:
+        raise Error("coupon used")
+
+    Team.objects(group_id=team.group_id).update_one(inc__coin=coupon.coin)
+    team.reload()
+    coupon.own_team = team
+    coupon.save()
+    team.reload()
+    bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
+                    .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
+
+    app.logger.info("{}, {} {} and gained {} coin".format(str(datetime.now()), team.name, log_message, coupon.coin))
 
 
 @bot.callback_query_handler(func=lambda x: True)
@@ -94,22 +112,18 @@ def matched_keyword(keyword_str, group_id):
 #     elif keyword_str == "15769":
 #         bot.sendMessage(team.group_id, "「市長是小石害怕之人，是已經受到心靈扭曲影響之人」")
 
-    coin = config.KEYWORD_MATCH_REWARD * keywords[keyword_str]
+    coin = config.KEYWORD_MATCH_REWARD * keywords[keyword_str]["value"]
 
-    if len(keyword.solved_team) == 0:
+    keyword.reload()
+    if keyword.first_bonus:
         coin *= 2
+        keyword.first_bonus = False
+        keyword.save()
 
-    coupon = generate_coupon(coin, "解開謎題 獲得", "System")
+    coupon = generate_coupon(coin, keyword.description, "System")
 
     Keyword.objects(keyword=keyword_str).update_one(push__solved_team=group_id)
-    Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
-    team.reload()
-    coupon.own_team = team
-    coupon.save()
-
-    bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
-                    .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
-    app.logger.info("{}, {} solved keyword {} gain {} coin".format(str(datetime.now()), team.name, keyword_str, coupon.coin))
+    consume_coupon(coupon, team, f"solved keyword {keyword_str}")
 
 
 @app.route('/generate', methods=['POST'])
@@ -148,12 +162,7 @@ def consume():
         except Team.DoesNotExist:
             raise Error("invalid team id")
 
-        Team.objects(group_id=group_id).update_one(inc__coin=coupon.coin)
-        team.reload()
-        coupon.own_team = team
-        coupon.save()
-        bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
-                        .format(coupon.description, coupon.coin, team.name, team.coin, currency_name=config.CURRENCY_NAME))
+        consume_coupon(coupon, team, "consumed coupon")
 
 #         if len(set(map(lambda _: _.producer, Coupon.objects(own_team=team)))) == len(produce_permission.keys()):
 #             bot.sendMessage(team.group_id, "「書靈 Lamp 想要幫助學徒尋找真相，因此靠著自己淵博的知識，發動了一個『真實之陣』\n真實之陣，信任正確之人，訴說你的信號，將會返回試金之結論」")
@@ -197,9 +206,8 @@ def handle_error(error):
     return response
 
 
-# polling is for develop
-# bot.infinity_polling()
-
 bot.remove_webhook()
 time.sleep(0.1)
+# polling is for develop
+# bot.infinity_polling()
 bot.set_webhook(url=config.WEBHOOK_URI)
