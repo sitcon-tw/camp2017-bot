@@ -206,9 +206,8 @@ def handle_error(error):
     return response
 
 
-# polling is for develop
-# bot.infinity_polling()
-
 bot.remove_webhook()
 time.sleep(0.1)
+# polling is for develop
+# bot.infinity_polling()
 bot.set_webhook(url=config.WEBHOOK_URI)
