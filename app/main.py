@@ -24,6 +24,9 @@ with open('teams.json', 'r') as teams_json:
 try:
     with open('keyword.json', 'r') as keyword_json:
         keywords = json.load(keyword_json)
+        for key in keywords.keys():
+            if "description" not in keywords[key]:
+                keywords[key]["description"] = config.DEFAULT_KEYWORD_DESCRIPTION
 except IOError:
     keywords = {}
 
@@ -43,8 +46,8 @@ for _ in teams:
         pass
 
 if len(keywords.keys()) != Keyword.objects.count():
-    for _ in keywords.keys():
-        Keyword(keyword=_).save()
+    for k, v in keywords.items():
+        Keyword(keyword=k, **dict(filter(lambda pair: pair[0] != "value", v.items()))).save()
 
 
 def generate_coupon(coin, description, producer):
@@ -109,12 +112,15 @@ def matched_keyword(keyword_str, group_id):
 #     elif keyword_str == "15769":
 #         bot.sendMessage(team.group_id, "「市長是小石害怕之人，是已經受到心靈扭曲影響之人」")
 
-    coin = config.KEYWORD_MATCH_REWARD * keywords[keyword_str]
+    coin = config.KEYWORD_MATCH_REWARD * keywords[keyword_str]["value"]
 
-    if len(keyword.solved_team) == 0:
+    keyword.reload()
+    if keyword.first_bonus:
         coin *= 2
+        keyword.first_bonus = False
+        keyword.save()
 
-    coupon = generate_coupon(coin, "解開謎題 獲得", "System")
+    coupon = generate_coupon(coin, keyword.description, "System")
 
     Keyword.objects(keyword=keyword_str).update_one(push__solved_team=group_id)
     consume_coupon(coupon, team, f"solved keyword {keyword_str}")

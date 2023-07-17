@@ -1,4 +1,10 @@
 {
-  "Hello": 1,
-  "World": 2
+  "Hello": {
+    "value": 1,
+    "description": "說出了 Hello，獲得"
+  },
+  "World": {
+    "value": 2,
+    "first_bonus": false
+  }
 }
