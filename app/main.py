@@ -4,6 +4,7 @@ import json
 import time
 
 from flask import Flask, request, jsonify, abort
+from flask.logging import default_handler
 from mongoengine import NotUniqueError, ValidationError
 
 from telebot import TeleBot
@@ -34,10 +35,10 @@ except IOError:
 bot = TeleBot(config.BOT_TOKEN)
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
-app.logger.addHandler(logging.StreamHandler())
 app.logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+app.logger.removeHandler(default_handler)
 
 for _ in teams:
     try:
