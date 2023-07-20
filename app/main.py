@@ -174,12 +174,20 @@ def consume():
 
 @app.route('/status')
 def status():
-    return Team.objects().to_json()
+    token = request.args.get('staff_token')
+    return_object = Team.objects()
+    if token != config.STAFF_TOKEN:
+        return_object = return_object.none()
+    return return_object.to_json()
 
 
 @app.route('/keyword_status')
 def keyword_status():
-    return Keyword.objects().only('solved_team', 'keyword').to_json()
+    access_list = ['solved_team']
+    token = request.args.get('staff_token')
+    if token == config.STAFF_TOKEN:
+        access_list.append('keyword')
+    return Keyword.objects().only(*access_list).to_json()
 
 
 # Process webhook calls
