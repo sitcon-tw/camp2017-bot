@@ -179,7 +179,7 @@ def status():
 
 @app.route('/keyword_status')
 def keyword_status():
-    return Keyword.objects().only('solved_team').to_json()
+    return Keyword.objects().only('solved_team', 'keyword').to_json()
 
 
 # Process webhook calls
