@@ -33,7 +33,7 @@ $ docker compose down --rmi local -v
 ```
 
 Usually, it takes long to pull `mongo` image.  
-Remove all iamges, networks and containers:
+Remove all images, networks and containers:
 ```bash
 $ docker compose down --rmi all -v
 ```
