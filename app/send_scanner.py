@@ -16,4 +16,4 @@ with open('teams.json', 'r') as teams_json:
     teams = json.load(teams_json)
 
 for _ in teams:
-    bot.sendGame(_['groupId'], "scanner", reply_markup=keyboard)
+    bot.send_game(_['groupId'], "scanner", reply_markup=keyboard)
