@@ -1,0 +1,10 @@
+--index-url https://pypi.org/simple
+
+# dev-packages
+flake8==7.1.0
+
+# packages
+mongoengine==0.28.2
+Flask==3.0.3
+pyTelegramBotAPI==4.19.2
+waitress==3.0.0
