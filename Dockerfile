@@ -1,11 +1,12 @@
 FROM python:3.11
 
-COPY ./Pipfile* /
+COPY ./pyproject.toml /
 
-RUN pip install --no-cache-dir pipenv && pipenv install
+RUN curl -sSL https://install.python-poetry.org/ | python3 - && /root/.local/bin/poetry install
 
 COPY ./app /app
+COPY ./docker-entrypoint.sh /app/docker-entrypoint.sh
 
 EXPOSE 5000
 WORKDIR /app
-ENTRYPOINT ["pipenv","run","waitress-serve", "--host=0.0.0.0", "--port=5000", "main:app"]
+ENTRYPOINT ["bash", "docker-entrypoint.sh"]
