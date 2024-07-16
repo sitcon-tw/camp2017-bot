@@ -71,6 +71,7 @@ def consume_coupon(coupon: Coupon, team: Team, log_message: str):
     Team.objects(group_id=team.group_id).update_one(inc__coin=coupon.coin)
     team.reload()
     coupon.own_team = team
+    coupon.consume_timestamp = time.time()
     coupon.save()
     team.reload()
     bot.send_message(team.group_id, "{} {} {currency_name}\n{} 目前總計擁有 {} {currency_name}"
