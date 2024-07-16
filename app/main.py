@@ -173,6 +173,47 @@ def consume():
     else:
         raise Error("Already used", status_code=409)
 
+@app.route('/consume_history')
+def consume_history():
+    token = request.args.get('staff_token')
+
+    if token != config.STAFF_TOKEN:
+        raise Error("Forbidden", status_code=403)
+
+    pipeline = [
+        {
+            '$match': {
+                'consume_timestamp': {'$exists': True, '$ne': None}
+            }
+        },
+        {
+            '$lookup': {
+                'from': 'team',
+                'localField': 'own_team',
+                'foreignField': '_id',
+                'as': 'team_info'
+            }
+        },
+        {
+            '$unwind': '$team_info'
+        },
+        {
+            '$project': {
+                'coin': 1,
+                'description': 1,
+                'producer': 1,
+                'consume_timestamp': 1,
+                'own_team': 1,
+                'team_name': '$team_info.name'
+            }
+        }
+    ]
+
+    result = Coupon.objects().aggregate(*pipeline)
+    json_result = json.dumps(list(result), default=str)
+
+    return json_result
+
 
 @app.route('/status')
 def status():
